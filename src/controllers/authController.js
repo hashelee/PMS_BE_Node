@@ -21,13 +21,13 @@ export const loginPharmacy = async (req, res) => {
 export const changePassword = async (req, res) => {
  try {
    const { oldPassword, newPassword } = req.body;
-   const userId = req.user._id;
+   const userId = req.user.userId;
    const email = req.user.email; 
    const role = req.user.role;
  
    const Model = role === "user" ? User : Pharmacy;
  
-   const user = Model.findOne({_id: userId,email: email});
+   const user = await Model.findOne({_id: userId,email: email});
    if(!user) return res.status(404).json({ message: "User not found" });
  
    const isMatch = await bcrypt.compare(oldPassword, user.password);
