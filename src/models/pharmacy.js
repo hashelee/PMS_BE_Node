@@ -12,8 +12,8 @@ const pharmacySchema = new mongoose.Schema({
 
   role: { 
     type: String, 
-    enum: ["user"], 
-    default: "user"
+    enum: ["pharmacy"], 
+    default: "pharmacy"
   },
 
   location: {
