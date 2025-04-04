@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 
 export const createUser = async (req, res) => {
   try {
-    const { email, password, name, phone, location, suggestedAddress } = req.body;
+    const { email, password, name, phone, suggestedAddress } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "Email already exists" });
@@ -15,9 +15,8 @@ export const createUser = async (req, res) => {
       password: hashedPassword,
       name,
       phone,
-      location: { type: "Point", coordinates: location },
       suggestedAddress,
-      role: "user",
+      role: "user"
     });
 
     res.status(201).json({ message: "User created successfully!", user: newUser });
