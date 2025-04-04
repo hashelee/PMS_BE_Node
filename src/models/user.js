@@ -12,8 +12,8 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   role: { 
     type: String, 
-    enum: ["pharmacy"], 
-    default: "pharmacy"
+    enum: ["user"], 
+    default: "user"
   },
   location: {
     type: { type: String, enum: ["Point"], default: "Point" },

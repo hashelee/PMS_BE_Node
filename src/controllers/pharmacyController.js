@@ -22,7 +22,8 @@ export const registerPharmacy = async (req, res) => {
         suggestedAddress,
         openingDays,
         openingTime,
-        closingTime
+        closingTime,
+        role: "pharmacy",
       });
   
       await newPharmacy.save();

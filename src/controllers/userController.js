@@ -16,7 +16,8 @@ export const createUser = async (req, res) => {
       name,
       phone,
       location: { type: "Point", coordinates: location },
-      suggestedAddress
+      suggestedAddress,
+      role: "user",
     });
 
     res.status(201).json({ message: "User created successfully!", user: newUser });
