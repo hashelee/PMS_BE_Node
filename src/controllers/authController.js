@@ -3,29 +3,49 @@ import Pharmacy from "../models/pharmacy.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { validateUser } from "../service/commonService.js";
 
 dotenv.config();
 
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
-  await loginByEntity(true, email, password, res);
+
+  try {
+    const result = await loginByEntity(true, email, password);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("Login error:", err);
+    res
+      .status(err.status || 500)
+      .json({ message: err.message || "Internal Server Error" });
+  }
 };
 
 export const loginPharmacy = async (req, res) => {
   const { email, password } = req.body;
-  await loginByEntity(false, email, password, res);
+
+  try {
+    const result = await loginByEntity(false, email, password);
+    res.status(200).json(result);
+  } catch (err) {
+    console.error("Login error:", err);
+    res
+      .status(err.status || 500)
+      .json({ message: err.message || "Internal Server Error" });
+  }
 };
 
 export const changePassword = async (req, res) => {
   try {
+    const { userId, email, role } = req.user;
     const { oldPassword, newPassword } = req.body;
 
-    const user = await validateUser(req, res);
-    if (!user) return;
+    const user = await validateUser(userId, email, role);
 
     if (!oldPassword || !newPassword) {
       return res
-        .status(400).json({ message: "oldPassword and newPassword are required" });
+        .status(400)
+        .json({ message: "oldPassword and newPassword are required" });
     }
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
@@ -41,66 +61,42 @@ export const changePassword = async (req, res) => {
 };
 
 export const forgotPasswordUser = async (req, res) => {
-  forgotPassword(req, res, true);
+  const { email, newPassword } = req.body;
+
+  await forgotPassword(email, newPassword, true);
+  res.status(200).json({ message: "Password changed successfully" });
 };
 
 export const forgotPasswordPharmacy = async (req, res) => {
-  forgotPassword(req, res, false);
-};
-
-const forgotPassword = async (req, res, isUser) => {
+  const { email, newPassword } = req.body;
   try {
-    const { email, newPassword } = req.body;
-
-    if (!email || !newPassword) {
-      return res.status(400).json({ message: "email is required" });
-    }
-
-    const Model = isUser ? User : Pharmacy;
-
-    const user = await Model.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    await saveNewPassword(newPassword, user, res);
+    await forgotPassword(email, newPassword, false);
+    res.status(200).json({ message: "Password changed successfully" });
   } catch (error) {
     console.error("Forgot Password Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
-const validateUser = async (req, res) => {
-  try {
-    const { userId, email, role } = req.user;
-    const Model = role === "user" ? User : Pharmacy;
-
-    const user = await Model.findOne({ _id: userId, email });
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return null;
-    }
-
-    return user;
-  } catch (error) {
-    console.error("Validate User Error:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-    return null;
+const forgotPassword = async (email, newPassword, isUser) => {
+  if (!email || !newPassword) {
+    return res
+      .status(400)
+      .json({ message: "Both email and newPassword are required" });
   }
+
+  const Model = isUser ? User : Pharmacy;
+
+  const user = await Model.findOne({ email });
+  if (!user) throw { status: 404, message: "User not found" };
+  await saveNewPassword(newPassword, user);
 };
 
-const saveNewPassword = async (newPassword, user, res) => {
-  try {
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+const saveNewPassword = async (newPassword, user) => {
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    user.password = hashedPassword;
-    await user.save();
-
-    res.status(200).json({ message: "Password changed successfully" });
-  } catch (error) {
-    console.error("Save new Password Error:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
+  user.password = hashedPassword;
+  await user.save();
 };
 
 const generateToken = (userId, email, role) => {
@@ -109,28 +105,22 @@ const generateToken = (userId, email, role) => {
   });
 };
 
-const loginByEntity = async (isUser, email, password, res) => {
-  try {
-    const Model = isUser ? User : Pharmacy;
-    const user = await Model.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+const loginByEntity = async (isUser, email, password) => {
+  const Model = isUser ? User : Pharmacy;
+  const user = await Model.findOne({ email });
+  if (!user) throw { status: 404, message: "User not found" };
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid email or password" });
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) throw { status: 401, message: "Invalid Credentials" };
 
-    const token = generateToken(user._id, user.email, user.role);
+  const token = generateToken(user._id, user.email, user.role);
 
-    res.status(200).json({
-      message: "Login successful",
-      token,
-      user: {
-        id: isUser ? user.userId : user.pharmacyId,
-        name: user.name,
-      },
-    });
-  } catch (err) {
-    console.error("Login Error:", err);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
+  return {
+    message: "Login successful",
+    token,
+    user: {
+      id: isUser ? user.userId : user.pharmacyId,
+      name: user.name,
+    },
+  };
 };
