@@ -3,6 +3,7 @@ import Pharmacy from "../models/pharmacy.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import nodemailer from "nodemailer";
 
 dotenv.config();
 
@@ -25,7 +26,8 @@ export const changePassword = async (req, res) => {
 
     if (!oldPassword || !newPassword) {
       return res
-        .status(400).json({ message: "oldPassword and newPassword are required" });
+        .status(400)
+        .json({ message: "oldPassword and newPassword are required" });
     }
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
@@ -132,5 +134,38 @@ const loginByEntity = async (isUser, email, password, res) => {
   } catch (err) {
     console.error("Login Error:", err);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const sendOtp = async (req, res) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const { email, otp } = req.body;
+
+  const mailOptions = {
+    from: '"Quick Meds" <quickmeds308@gmail.com>',
+    to: email,
+    subject: "Quick Meds OTP Code",
+    html: `
+      <h2>Quick Meds - OTP Verification</h2>
+      <p>Your OTP code is <strong>${otp}</strong></p>
+      <p>Please do not share this code with anyone.</p>
+      <br />
+      <small>This is an automated email. Please do not reply.</small>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: "OTP sent successfully", info });
+  } catch (error) {
+    console.error("OTP Email Error:", error);
+    res.status(500).json({ message: "Error sending email", error });
   }
 };
