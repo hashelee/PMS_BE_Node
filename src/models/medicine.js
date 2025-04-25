@@ -10,7 +10,7 @@ const medicineSchema = new mongoose.Schema({
     ref: "Pharmacy", 
     required: true 
   },
-
+  identificationCode: { type: String, unique: true, required: true },
   name: { type: String, required: true },  
   brand: { type: String, required: false }, 
   description: { type: String, required: false },

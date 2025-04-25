@@ -5,6 +5,7 @@ import { validateUser } from "../service/commonService.js";
 export const createMedicine = async (req, res) => {
   const { userId, email, role } = req.user;
   const {
+    identificationCode,
     name,
     brand,
     description,
@@ -20,6 +21,7 @@ export const createMedicine = async (req, res) => {
 
     const newMedicine = new Medicine({
       pharmacyId: userId,
+      identificationCode,
       name,
       brand,
       description,
@@ -34,6 +36,9 @@ export const createMedicine = async (req, res) => {
 
     return res.status(201).json(newMedicine);
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Identification code must be unique." });
+    }
     console.error(error);
     return res.status(500).json({ message: "Error creating medicine" });
   }
@@ -46,6 +51,10 @@ export const editMedicine = async (req, res) => {
 
   try {
     await validateUser(userId, email, role);
+
+    if(updatedData.identificationCode){
+      return res.status(400).json({ message: "Identification code cannot be updated." });
+    }
 
     const errors = await validateMedicineData(updatedData);
     if (errors.length > 0) {
@@ -65,7 +74,7 @@ export const editMedicine = async (req, res) => {
     return res.status(200).json(updatedMedicine);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Error updating medicine" });
+    return res.status(500).json({ message: "Error creating medicine" });
   }
 };
 
