@@ -1,10 +1,10 @@
 import Medicine from "../models/medicine.js";
-import Pharmacy from "../models/pharmacy.js";
-import { validateUser } from "../service/commonService.js";
+import { validateUser, validateEditFields } from "../service/commonService.js";
 
 export const createMedicine = async (req, res) => {
   const { userId, email, role } = req.user;
   const {
+    identificationCode,
     name,
     brand,
     description,
@@ -16,10 +16,14 @@ export const createMedicine = async (req, res) => {
   } = req.body;
 
   try {
-    await validateUser(userId, email, role);
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const newMedicine = new Medicine({
       pharmacyId: userId,
+      identificationCode,
       name,
       brand,
       description,
@@ -34,6 +38,11 @@ export const createMedicine = async (req, res) => {
 
     return res.status(201).json(newMedicine);
   } catch (error) {
+    if (error.code === 11000) {
+      return res
+        .status(409)
+        .json({ message: "Identification code must be unique." });
+    }
     console.error(error);
     return res.status(500).json({ message: "Error creating medicine" });
   }
@@ -45,7 +54,18 @@ export const editMedicine = async (req, res) => {
   const updatedData = req.body;
 
   try {
-    await validateUser(userId, email, role);
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const noRestrictedFirlds = validateEditFields(updatedData);
+
+    if (!noRestrictedFirlds) {
+      return res
+        .status(400)
+        .json({ message: "Cannot update restricted fields" });
+    }
 
     const errors = await validateMedicineData(updatedData);
     if (errors.length > 0) {
@@ -65,7 +85,7 @@ export const editMedicine = async (req, res) => {
     return res.status(200).json(updatedMedicine);
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Error updating medicine" });
+    return res.status(500).json({ message: "Error creating medicine" });
   }
 };
 
@@ -74,7 +94,10 @@ export const deleteMedicine = async (req, res) => {
   const { medicineId } = req.params;
 
   try {
-    await validateUser(userId, email, role);
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const deletedMedicine = await Medicine.findByIdAndDelete(medicineId);
 
@@ -94,7 +117,10 @@ export const getMedicineById = async (req, res) => {
   const { medicineId } = req.params;
 
   try {
-    await validateUser(userId, email, role);
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const medicine = await Medicine.findById(medicineId).populate(
       "pharmacyId",
@@ -115,8 +141,10 @@ export const getAllMedicines = async (req, res) => {
   const { pharmacyId } = req.params;
 
   try {
-    await validateUser(userId, email, role);
-
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
     const medicines = await Medicine.find({ pharmacyId }).populate(
       "pharmacyId",
       "name email"
