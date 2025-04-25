@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import Medicine from "../models/medicine.js";
 import Pharmacy from "../models/pharmacy.js";
 import { validateUser, validateEditFields } from "../service/commonService.js";
 
@@ -81,3 +82,39 @@ export const editPharmacy = async (req, res) => {
     return res.status(500).json({ message: "Error editing pharmacy" });
   }
 };
+
+export const deletePharmacy = async (req, res) => {
+  const { userId, email, role } = req.user;
+
+  try {
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await Pharmacy.findByIdAndDelete(userId);
+
+    return res.status(200).json({ message: "Pharmacy deleted successfully" });
+  } catch (error) {
+    console.error("Delete Pharmacy Error:", error);
+    return res.status(500).json({ message: "Error deleting pharmacy" });
+  }
+};
+
+export const getMedicine = async (req, res) => {
+  const { userId, email, role } = req.user;
+
+  try {
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const medicines = await Medicine.find({ pharmacyId: userId });
+
+    return res.status(200).json(medicines);
+  } catch (error) {
+    console.error("Get Medicine Error:", error);
+    return res.status(500).json({ message: "Error fetching medicines" });
+  }
+}
