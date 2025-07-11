@@ -118,3 +118,39 @@ export const getMedicine = async (req, res) => {
     return res.status(500).json({ message: "Error fetching medicines" });
   }
 }
+
+export const getNearbyPharmacies = async (req, res) => {
+  const { userId, email, role } = req.user;
+
+  try {
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    const { lng, lat, maxDistance = 10000 } = req.query;
+
+    if (!lng || !lat) {
+      return res.status(400).json({ message: "Latitude and longitude are required." });
+    }
+
+    const pharmacies = await Pharmacy.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+          },
+          distanceField: "distance",      
+          maxDistance: parseInt(maxDistance),
+          spherical: true
+        }
+      }
+    ]);
+
+    res.json(pharmacies);
+  } catch (error) {
+    console.error("Error in getNearbyPharmacies:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
