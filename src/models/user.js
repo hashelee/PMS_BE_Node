@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
     },
   },
   suggestedAddress: { type: String, required: true },
-}, { timestamps: true });
+}, { timestamps: true, strict: true });
 
 userSchema.index({ location: "2dsphere" }); 
 
