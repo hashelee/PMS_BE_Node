@@ -15,6 +15,7 @@ export const registerPharmacy = async (req, res) => {
       openingDays,
       openingTime,
       closingTime,
+      deliveryAvailability
     } = req.body;
 
     const existingPharmacy = await Pharmacy.findOne({ email });
@@ -36,6 +37,7 @@ export const registerPharmacy = async (req, res) => {
       openingTime,
       closingTime,
       role: "pharmacy",
+      deliveryAvailability
     });
 
     await newPharmacy.save();
@@ -57,9 +59,9 @@ export const editPharmacy = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const noRestrictedFirlds = validateEditFields(updatedData);
+    const noRestrictedFields = validateEditFields(updatedData);
 
-    if (!noRestrictedFirlds) {
+    if (!noRestrictedFields) {
       return res
         .status(400)
         .json({ message: "Cannot update restricted fields" });

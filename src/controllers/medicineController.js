@@ -13,6 +13,7 @@ export const createMedicine = async (req, res) => {
     dosage,
     category,
     expiryDate,
+    prescriptionRequired
   } = req.body;
 
   try {
@@ -32,6 +33,7 @@ export const createMedicine = async (req, res) => {
       dosage,
       category,
       expiryDate,
+      prescriptionRequired
     });
 
     await newMedicine.save();

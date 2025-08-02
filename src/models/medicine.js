@@ -28,6 +28,8 @@ const medicineSchema = new mongoose.Schema({
   },
 
   expiryDate: { type: Date, required: true },
+
+  prescriptionRequired: { type: Boolean, required: true, default: false },
 });
 
 medicineSchema.index({ pharmacyId: 1 });
