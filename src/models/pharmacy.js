@@ -56,7 +56,7 @@ const pharmacySchema = new mongoose.Schema(
 
     deliveryStatus: { type: Boolean, default: false },
 
-    rating: {type: Number, default: 0, min: 0, max: 5},
+    rating: {type: mongoose.Schema.Types.Double, default: 0.0, min: 0.0, max: 5.0},
   },
   { timestamps: true, strict: true }
 );
