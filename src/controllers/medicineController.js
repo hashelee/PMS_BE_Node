@@ -1,5 +1,9 @@
+import Fuse from "fuse.js";
 import Medicine from "../models/medicine.js";
+import Pharmacy from "../models/pharmacy.js";
+
 import { validateUser, validateEditFields } from "../service/commonService.js";
+import mongoose from "mongoose";
 
 export const createMedicine = async (req, res) => {
   const { userId, email, role } = req.user;
@@ -13,7 +17,7 @@ export const createMedicine = async (req, res) => {
     dosage,
     category,
     expiryDate,
-    prescriptionRequired
+    prescriptionRequired,
   } = req.body;
 
   try {
@@ -33,7 +37,7 @@ export const createMedicine = async (req, res) => {
       dosage,
       category,
       expiryDate,
-      prescriptionRequired
+      prescriptionRequired,
     });
 
     await newMedicine.save();
@@ -174,4 +178,78 @@ const validateMedicineData = async (data) => {
   if (new Date(expiryDate) < new Date())
     errors.push("Expiry date must be in the future");
   return errors;
+};
+
+export const getPharmaciesByMedicine = async (req, res) => {
+  const { userId, email, role } = req.user;
+  try {
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const { lng, lat, maxDistance = 10000, name } = req.query;
+
+    if (!lng || !lat) {
+      return res
+        .status(400)
+        .json({ message: "Latitude and longitude are required." });
+    }
+    if (!name) {
+      return res.status(400).json({ message: "Medicine name is required." });
+    }
+
+    let medicines = await Medicine.find({}).populate("pharmacyId");
+
+    
+    const fuse = new Fuse(medicines, {
+      keys: ["name"],
+      threshold: 0.4,
+    });
+    medicines = fuse.search(name).map((r) => r.item);
+
+    if (medicines.length === 0) {
+      return res.json([]);
+    }
+
+    const grouped = medicines.reduce((acc, med) => {
+      const pid = med.pharmacyId._id.toString();
+      if (!acc[pid]) {
+        acc[pid] = {
+          pharmacy: med.pharmacyId.toObject(),
+          medicines: [],
+        };
+      }
+      acc[pid].medicines.push(med);
+      return acc;
+    }, {});
+
+    const pharmacyIds = Object.keys(grouped).map(
+      (id) => new mongoose.Types.ObjectId(id)
+    );
+
+    const nearbyPharmacies = await Pharmacy.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)],
+          },
+          distanceField: "distance",
+          maxDistance: parseInt(maxDistance),
+          spherical: true,
+          query: { _id: { $in: pharmacyIds } },
+        },
+      },
+      { $sort: { distance: 1 } },
+    ]);
+
+    const result = nearbyPharmacies.map((pharmacy) => ({
+      medicines: grouped[pharmacy._id.toString()].medicines,
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error in getPharmaciesByMedicine:", error);
+    res.status(500).json({ error: error.message });
+  }
 };
