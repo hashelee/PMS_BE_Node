@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import Medicine from "../models/medicine.js";
 import Pharmacy from "../models/pharmacy.js";
+import Fuse from "fuse.js";
 import { validateUser, validateEditFields } from "../service/commonService.js";
 
 export const registerPharmacy = async (req, res) => {
@@ -15,7 +16,7 @@ export const registerPharmacy = async (req, res) => {
       openingDays,
       openingTime,
       closingTime,
-      deliveryAvailability
+      deliveryAvailability,
     } = req.body;
 
     const existingPharmacy = await Pharmacy.findOne({ email });
@@ -37,7 +38,7 @@ export const registerPharmacy = async (req, res) => {
       openingTime,
       closingTime,
       role: "pharmacy",
-      deliveryAvailability
+      deliveryAvailability,
     });
 
     await newPharmacy.save();
@@ -119,7 +120,7 @@ export const getMedicine = async (req, res) => {
     console.error("Get Medicine Error:", error);
     return res.status(500).json({ message: "Error fetching medicines" });
   }
-}
+};
 
 export const getNearbyPharmacies = async (req, res) => {
   const { userId, email, role } = req.user;
@@ -129,11 +130,13 @@ export const getNearbyPharmacies = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     const { lng, lat, maxDistance = 10000 } = req.query;
 
     if (!lng || !lat) {
-      return res.status(400).json({ message: "Latitude and longitude are required." });
+      return res
+        .status(400)
+        .json({ message: "Latitude and longitude are required." });
     }
 
     const pharmacies = await Pharmacy.aggregate([
@@ -141,18 +144,67 @@ export const getNearbyPharmacies = async (req, res) => {
         $geoNear: {
           near: {
             type: "Point",
-            coordinates: [parseFloat(lng), parseFloat(lat)]
+            coordinates: [parseFloat(lng), parseFloat(lat)],
           },
-          distanceField: "distance",      
+          distanceField: "distance",
           maxDistance: parseInt(maxDistance),
-          spherical: true
-        }
-      }
+          spherical: true,
+        },
+      },
     ]);
 
     res.json(pharmacies);
   } catch (error) {
     console.error("Error in getNearbyPharmacies:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getNearbyPharmaciesByName = async (req, res) => {
+  const { userId, email, role } = req.user;
+
+  try {
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const { lng, lat, maxDistance = 10000, name } = req.query;
+
+    if (!lng || !lat) {
+      return res
+        .status(400)
+        .json({ message: "Latitude and longitude are required." });
+    }
+
+    let pharmacies = await Pharmacy.aggregate([
+      {
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)],
+          },
+          distanceField: "distance",
+          maxDistance: parseInt(maxDistance),
+          spherical: true,
+        },
+      },
+      {
+        $sort: { distance: 1 },
+      },
+    ]);
+
+    if (name) {
+      const fuse = new Fuse(pharmacies, {
+        keys: ["name"],
+        threshold: 0.4,
+      });
+      pharmacies = fuse.search(name).map((result) => result.item);
+    }
+
+    res.json(pharmacies);
+  } catch (error) {
+    console.error("Error in getNearbyPharmaciesByName:", error);
     res.status(500).json({ error: error.message });
   }
 };
