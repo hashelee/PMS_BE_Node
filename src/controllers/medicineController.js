@@ -198,15 +198,14 @@ export const getPharmaciesByMedicine = async (req, res) => {
       return res.status(400).json({ message: "Medicine name is required." });
     }
 
-    let medicines = await Medicine.find({
-      name: { $regex: name, $options: "i" },
-    }).populate("pharmacyId");
+    let medicines = await Medicine.find({}).populate("pharmacyId");
 
+    
     const fuse = new Fuse(medicines, {
       keys: ["name"],
       threshold: 0.4,
     });
-    medicines = fuse.search(name).map((res) => res.item);
+    medicines = fuse.search(name).map((r) => r.item);
 
     if (medicines.length === 0) {
       return res.json([]);
