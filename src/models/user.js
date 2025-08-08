@@ -5,6 +5,23 @@ import AutoIncrementFactory from "mongoose-sequence";
 const connection = mongoose.connection;
 const AutoIncrement = AutoIncrementFactory(connection);
 
+const cartItemSchema = new mongoose.Schema({
+  medicineId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Medicine",
+    required: true
+  },
+  quantity: { type: Number, default: 1, min: 1 }
+}, { _id: false });
+
+const wishlistItemSchema = new mongoose.Schema({
+  medicineId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Medicine",
+    required: true
+  }
+}, { _id: false });
+
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -27,6 +44,8 @@ const userSchema = new mongoose.Schema({
     },
   },
   suggestedAddress: { type: String, required: true },
+  wishlist: [wishlistItemSchema],
+  cart: [cartItemSchema]
 }, { timestamps: true, strict: true });
 
 userSchema.index({ location: "2dsphere" }); 
