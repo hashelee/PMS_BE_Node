@@ -196,10 +196,24 @@ export const getNearbyPharmaciesByName = async (req, res) => {
 
     if (name) {
       const fuse = new Fuse(pharmacies, {
-        keys: ["name"],
+        keys: ["name", "suggestedAddress"],
         threshold: 0.4,
       });
-      pharmacies = fuse.search(name).map((result) => result.item);
+      const searchResults = fuse.search(name).map((result) => result.item);
+
+      const nameMatches = searchResults.filter((pharmacy) =>
+        pharmacy.name.toLowerCase().includes(name.toLowerCase())
+      );
+      
+      const addressMatches = searchResults.filter((pharmacy) =>
+        pharmacy.suggestedAddress.toLowerCase().includes(name.toLowerCase()) &&
+        !pharmacy.name.toLowerCase().includes(name.toLowerCase())
+      );
+
+      nameMatches.sort((a, b) => a.distance - b.distance);
+      addressMatches.sort((a, b) => a.distance - b.distance);
+
+      pharmacies = [...nameMatches, ...addressMatches];
     }
 
     res.json(pharmacies);
