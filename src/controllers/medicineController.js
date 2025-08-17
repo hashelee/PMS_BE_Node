@@ -202,7 +202,7 @@ export const getPharmaciesByMedicine = async (req, res) => {
 
     
     const fuse = new Fuse(medicines, {
-      keys: ["name"],
+      keys: ["name", "description"],
       threshold: 0.4,
     });
     medicines = fuse.search(name).map((r) => r.item);
