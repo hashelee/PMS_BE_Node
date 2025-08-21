@@ -192,9 +192,31 @@ export const getUserCart = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     const cart = await User.findById(userId)
-      .populate("cart.medicineId", "name price description")
+      .populate({
+        path: "cart.medicineId",
+        select: "name price description pharmacyId",
+        populate: { path: "pharmacyId"},
+      })
       .select("cart");
-    return res.status(200).json(cart);
+
+    const mappedCart = cart.cart.reduce((acc, item) => {
+      const pharmacy = item.medicineId.pharmacyId;
+      const existingPharmacy = acc.find(entry => entry.pharmacy._id.toString() === pharmacy._id.toString());
+      const itemWithoutPharmacyId = { ...item.toObject(), medicineId: { ...item.medicineId.toObject() } };
+      delete itemWithoutPharmacyId.medicineId.pharmacyId;
+
+      if (!existingPharmacy) {
+      acc.push({
+        pharmacy,
+        items: [itemWithoutPharmacyId],
+      });
+      } else {
+      existingPharmacy.items.push(itemWithoutPharmacyId);
+      }
+      return acc;
+    }, []);
+
+    return res.status(200).json(mappedCart);
   } catch (error) {
     console.error("Get User Cart Error:", error);
     return res.status(500).json({ message: "Error fetching cart" });
