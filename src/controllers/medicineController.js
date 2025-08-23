@@ -262,7 +262,7 @@ export const getPharmaciesByMedicines = async (req, res) => {
       .map((pharmacy) => ({
         pharmacy: pharmacy,
         medicines: grouped[pharmacy._id.toString()].medicines,
-        medicineCount: matchedCount,
+        medicineCount: grouped[pharmacy._id.toString()].medicines.length,
       }))
       .sort((a, b) => b.medicineCount - a.medicineCount); 
 
