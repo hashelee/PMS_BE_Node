@@ -26,6 +26,17 @@ export const createMedicine = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const excistingIdentificationCode = await Medicine.findOne({
+      identificationCode,
+      pharmacyId: userId,
+    });
+
+    if (excistingIdentificationCode) {
+      return res
+        .status(409)
+        .json({ message: "Identification code must be unique." });
+    }
+
     const newMedicine = new Medicine({
       pharmacyId: userId,
       identificationCode,
