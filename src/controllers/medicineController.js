@@ -205,11 +205,13 @@ export const getPharmaciesByMedicines = async (req, res) => {
         .status(400)
         .json({ message: "Latitude and longitude are required." });
     }
-    if (!names || !Array.isArray(names) || names.length === 0) {
+    if (!names || (!Array.isArray(names) && typeof names !== "string")) {
       return res
         .status(400)
-        .json({ message: "An array of medicine names is required." });
+        .json({ message: "A medicine name or an array of medicine names is required." });
     }
+
+    const medicineNames = Array.isArray(names) ? names : [names];
 
     let medicines = await Medicine.find({}).populate("pharmacyId");
 
@@ -217,7 +219,7 @@ export const getPharmaciesByMedicines = async (req, res) => {
       keys: ["name", "description"],
       threshold: 0.4,
     });
-    medicines = names
+    medicines = medicineNames
       .flatMap((name) => fuse.search(name).map((r) => r.item))
       .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
 
@@ -257,14 +259,13 @@ export const getPharmaciesByMedicines = async (req, res) => {
       { $sort: { distance: 1 } },
     ]);
 
-  
     const result = nearbyPharmacies
       .map((pharmacy) => ({
         pharmacy: pharmacy,
         medicines: grouped[pharmacy._id.toString()].medicines,
         medicineCount: grouped[pharmacy._id.toString()].medicines.length,
       }))
-      .sort((a, b) => b.medicineCount - a.medicineCount); 
+      .sort((a, b) => b.medicineCount - a.medicineCount);
 
     res.json(result);
   } catch (error) {
