@@ -180,32 +180,35 @@ const validateMedicineData = async (data) => {
   return errors;
 };
 
-export const getPharmaciesByMedicine = async (req, res) => {
+export const getPharmaciesByMedicines = async (req, res) => {
   const { userId, email, role } = req.user;
   try {
     const user = validateUser(userId, email, role);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const { lng, lat, maxDistance = 10000, name } = req.query;
+    const { lng, lat, maxDistance = 10000, names } = req.query;
 
     if (!lng || !lat) {
       return res
         .status(400)
         .json({ message: "Latitude and longitude are required." });
     }
-    if (!name) {
-      return res.status(400).json({ message: "Medicine name is required." });
+    if (!names || !Array.isArray(names) || names.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "An array of medicine names is required." });
     }
 
     let medicines = await Medicine.find({}).populate("pharmacyId");
 
-    
     const fuse = new Fuse(medicines, {
       keys: ["name", "description"],
       threshold: 0.4,
     });
-    medicines = fuse.search(name).map((r) => r.item);
+    medicines = names
+      .flatMap((name) => fuse.search(name).map((r) => r.item))
+      .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
 
     if (medicines.length === 0) {
       return res.json([]);
@@ -243,13 +246,18 @@ export const getPharmaciesByMedicine = async (req, res) => {
       { $sort: { distance: 1 } },
     ]);
 
-    const result = nearbyPharmacies.map((pharmacy) => ({
-      medicines: grouped[pharmacy._id.toString()].medicines,
-    }));
+  
+    const result = nearbyPharmacies
+      .map((pharmacy) => ({
+        pharmacy: pharmacy,
+        medicines: grouped[pharmacy._id.toString()].medicines,
+        medicineCount: matchedCount,
+      }))
+      .sort((a, b) => b.medicineCount - a.medicineCount); 
 
     res.json(result);
   } catch (error) {
-    console.error("Error in getPharmaciesByMedicine:", error);
+    console.error("Error in getPharmaciesByMedicines:", error);
     res.status(500).json({ error: error.message });
   }
 };
