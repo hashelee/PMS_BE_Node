@@ -216,7 +216,7 @@ export const getPharmaciesByMedicines = async (req, res) => {
     let medicines = await Medicine.find({}).populate("pharmacyId");
 
     const fuse = new Fuse(medicines, {
-      keys: ["name", "description"],
+      keys: ["name", "description", "category", "brand"],
       threshold: 0.4,
     });
     medicines = medicineNames
@@ -271,5 +271,36 @@ export const getPharmaciesByMedicines = async (req, res) => {
   } catch (error) {
     console.error("Error in getPharmaciesByMedicines:", error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const searchInPharmacy = async (req, res) => {
+  const { userId, email, role } = req.user;
+  const { pharmacyId } = req.params;
+  const { names } = req.query;
+  try {
+    const user = validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (!names || (!Array.isArray(names) && typeof names !== "string")) {
+      return res
+        .status(400)
+        .json({ message: "A medicine name or an array of medicine names is required." });
+    }
+    const medicineNames = Array.isArray(names) ? names : [names];
+    let medicines = await Medicine.find({ pharmacyId }).populate("pharmacyId");
+
+    const fuse = new Fuse(medicines, {
+      keys: ["name", "description", "category", "brand"],
+      threshold: 0.4,
+    });
+    medicines = medicineNames
+      .flatMap((name) => fuse.search(name).map((r) => r.item))
+      .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+    return res.status(200).json(medicines);
+  } catch (error) {
+    console.error("Search Error:", error);
+    return res.status(500).json({ message: "Error searching medicines" });
   }
 };
