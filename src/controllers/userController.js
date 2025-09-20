@@ -67,6 +67,21 @@ export const updateUser = async (req, res) => {
   }
 };
 
+export const getUserProfile = async (req, res) => {
+  const { userId, email, role } = req.user;
+  try {
+    const user = await validateUser(userId, email, role); 
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const { password,wishlist,cart, ...safeData } = user.toObject();
+    return res.status(200).json(safeData);
+  } catch (error) {
+    console.error("Get User Profile Error:", error);
+    return res.status(500).json({ message: "Error fetching user profile" });
+  }
+};
+
 export const addToWishlist = async (req, res) => {
   const { userId, email, role } = req.user;
   const { medicineId } = req.body;
