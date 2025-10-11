@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addToCart, addToWishlist, createUser,getUserCart,getUserWishlist,removeFromCart,removeFromWishlist,updateUser,getUserProfile } from "../controllers/userController.js";
+import { addToCart, addToWishlist, createUser,getUserCart,getUserWishlist,removeFromCart,removeFromWishlist,updateUser,getUserProfile, deleteUser } from "../controllers/userController.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
 const router = Router();
 
@@ -11,6 +11,7 @@ router.patch("/edit", authenticateUser, updateUser);
 
 router.delete("/wishlist/remove", authenticateUser, removeFromWishlist);
 router.delete("/cart/remove", authenticateUser, removeFromCart);
+router.delete("/delete", authenticateUser, deleteUser)
 
 router.get("/profile", authenticateUser, getUserProfile);
 router.get("/cart", authenticateUser, getUserCart);
