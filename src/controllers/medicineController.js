@@ -208,7 +208,9 @@ export const getPharmaciesByMedicines = async (req, res) => {
     if (!names || (!Array.isArray(names) && typeof names !== "string")) {
       return res
         .status(400)
-        .json({ message: "A medicine name or an array of medicine names is required." });
+        .json({
+          message: "A medicine name or an array of medicine names is required.",
+        });
     }
 
     const medicineNames = Array.isArray(names) ? names : [names];
@@ -286,7 +288,9 @@ export const searchInPharmacy = async (req, res) => {
     if (!names || (!Array.isArray(names) && typeof names !== "string")) {
       return res
         .status(400)
-        .json({ message: "A medicine name or an array of medicine names is required." });
+        .json({
+          message: "A medicine name or an array of medicine names is required.",
+        });
     }
     const medicineNames = Array.isArray(names) ? names : [names];
     let medicines = await Medicine.find({ pharmacyId }).populate("pharmacyId");

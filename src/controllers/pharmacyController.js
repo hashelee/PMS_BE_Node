@@ -91,7 +91,7 @@ export const deletePharmacy = async (req, res) => {
   const { userId, email, role } = req.user;
 
   try {
-    const user = validateUser(userId, email, role);
+    const user = await validateUser(userId, email, role);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
