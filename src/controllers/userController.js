@@ -67,6 +67,23 @@ export const updateUser = async (req, res) => {
   }
 };
 
+export const deleteUser = async (req, res) => {
+  const { userId, email, role } = req.user;
+
+  try {
+    const user = await validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await User.findByIdAndDelete(userId);
+    return res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Delete User Error:", error);
+    return res.status(500).json({ message: "Error deleting user" });
+  }
+};
+
 export const getUserProfile = async (req, res) => {
   const { userId, email, role } = req.user;
   try {
