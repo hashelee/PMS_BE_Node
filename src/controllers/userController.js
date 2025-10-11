@@ -166,13 +166,35 @@ export const getUserWishlist = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     const wishlist = await User.findById(userId)
-      .populate("wishlist.medicineId", "name price description")
+      .populate({
+        path: "wishlist.medicineId",
+        select: "name price description quantity pharmacyId",
+        populate: { path: "pharmacyId", select: "-password" },
+      })
       .select("wishlist");
-    return res.status(200).json(wishlist);
+
+      const mappedWishList = wishlist.wishlist.reduce((acc, item) => {
+      const pharmacy = item.medicineId.pharmacyId;
+      const existingPharmacy = acc.find(entry => entry.pharmacy._id.toString() === pharmacy._id.toString());
+      const itemWithoutPharmacyId = { ...item.toObject(), medicineId: { ...item.medicineId.toObject() } };
+      delete itemWithoutPharmacyId.medicineId.pharmacyId;
+
+      if (!existingPharmacy) {
+      acc.push({
+        pharmacy,
+        items: [itemWithoutPharmacyId],
+      });
+      } else {
+      existingPharmacy.items.push(itemWithoutPharmacyId);
+      }
+      return acc;
+    }, []);
+
+    return res.status(200).json(mappedWishList);
   } catch (error) {
     console.error("Get User Wishlist Error:", error);
     return res.status(500).json({ message: "Error fetching wishlist" });
-  }   
+  }
 };
 
 export const addToCart = async (req, res) => {
@@ -236,8 +258,8 @@ export const getUserCart = async (req, res) => {
     const cart = await User.findById(userId)
       .populate({
         path: "cart.medicineId",
-        select: "name price description pharmacyId",
-        populate: { path: "pharmacyId"},
+        select: "name price description quantity pharmacyId",
+        populate: { path: "pharmacyId", select: "-password" },
       })
       .select("cart");
 

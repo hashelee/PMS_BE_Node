@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import Medicine from "../models/medicine.js";
 import Pharmacy from "../models/pharmacy.js";
+import User from "../models/user.js";
 import Fuse from "fuse.js";
 import { validateUser, validateEditFields } from "../service/commonService.js";
 import mongoose from "mongoose";
@@ -103,9 +104,29 @@ export const deletePharmacy = async (req, res) => {
       return res.status(401).json({ message: "Invalid password" });
     }
 
+    // Fetch all medicine IDs associated with the pharmacy
+    const medicines = await Medicine.find({ pharmacyId: userId }).select("_id");
+    const medicineIds = medicines.map((medicine) => medicine._id);
+
+    // Delete all medicines associated with the pharmacy
+    await Medicine.deleteMany({ pharmacyId: userId });
+
+    // Delete all wishlist items containing those medicines
+    await User.updateMany(
+      { "wishlist.medicineId": { $in: medicineIds } },
+      { $pull: { wishlist: { medicineId: { $in: medicineIds } } } }
+    );
+
+    // Delete all cart items containing those medicines
+    await User.updateMany(
+      { "cart.medicineId": { $in: medicineIds } },
+      { $pull: { cart: { medicineId: { $in: medicineIds } } } }
+    );
+
+    // Delete the pharmacy itself
     await Pharmacy.findByIdAndDelete(userId);
 
-    return res.status(200).json({ message: "Pharmacy deleted successfully" });
+    return res.status(200).json({ message: "Pharmacy and associated data deleted successfully" });
   } catch (error) {
     console.error("Delete Pharmacy Error:", error);
     return res.status(500).json({ message: "Error deleting pharmacy" });
