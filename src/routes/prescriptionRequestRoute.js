@@ -4,6 +4,6 @@ import { createPrescriptionRequest } from "../controllers/prescriptionrequestCon
 
 const router = Router();
 
-router.post("/:pharmacyId/create",authenticateUser, createPrescriptionRequest);
+router.post("/create",authenticateUser, createPrescriptionRequest);
 
 export default router;
