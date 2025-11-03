@@ -49,3 +49,24 @@ export const authenticatePharmacy = (req, res, next) => {
     res.status(401).json({ message: "Invalid Token" });
   }
 };
+
+export const authenticate = (req, res, next) => {
+  const token = extractBearerToken(req);
+  if (!token) {
+    return res.status(401).json({ message: "Access Denied. No Token Provided." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+
+    if (req.user.role !== "user" && req.user.role !== "pharmacy") {
+      return res.status(403).json({ message: "Forbidden: User or Pharmacy access only" });
+    }
+
+    next();
+  } catch (err) {
+    console.error("Auth Error:", err);
+    res.status(401).json({ message: "Invalid Token" });
+  }
+};
