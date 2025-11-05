@@ -4,7 +4,8 @@ import { createPrescriptionRequest, getPrescriptionRequestById } from "../contro
 
 const router = Router();
 
-router.post("/create/:pharmacyId",authenticateUser, createPrescriptionRequest);
 router.get("/:requestId", authenticate, getPrescriptionRequestById);
+
+router.post("/create",authenticateUser, createPrescriptionRequest);
 
 export default router;

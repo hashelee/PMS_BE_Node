@@ -5,7 +5,7 @@ import { validateUser } from "../service/commonService.js";
 export const createPrescriptionRequest = async (req, res) => {
   const { userId, email, role } = req.user;
   const { filepath, notes, orderType } = req.body;
-  const { pharmacyId } = req.params;
+  const { pharmacyId } = req.query;
 
   try {
     const user = await validateUser(userId, email, role);
