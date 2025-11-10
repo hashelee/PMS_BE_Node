@@ -9,6 +9,7 @@ import {
   getPharmacyDetails,
 } from "../controllers/pharmacyController.js";
 import {
+  authenticate,
   authenticatePharmacy,
   authenticateUser,
 } from "../middleware/authMiddleware.js";
@@ -21,7 +22,6 @@ router.delete("/delete", authenticatePharmacy, deletePharmacy);
 router.get("/medicine", authenticatePharmacy, getMedicine);
 router.get("/nearby", authenticateUser, getNearbyPharmacies);
 router.get("/search", authenticateUser, getNearbyPharmaciesByName);
-router.get("/PharmacyDetails", authenticateUser, getPharmacyDetails);
-router.get("/OwnPharmacyDetails", authenticatePharmacy, getPharmacyDetails);
+router.get("/pharmacyDetails",authenticate, getPharmacyDetails);
 
 export default router;
