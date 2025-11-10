@@ -267,15 +267,7 @@ export const getPharmacyDetails = async (req, res) => {
       return res.status(400).json({ message: "Pharmacy ID is required" });
     }
 
-    let pharmacy;
-
-    if (mongoose.Types.ObjectId.isValid(pharmacyId)) {
-      // search by MongoDB ObjectId
-      pharmacy = await Pharmacy.findById(pharmacyId).lean();
-    } else {
-      // fallback: search by custom field (e.g. numeric pharmacyCode)
-      pharmacy = await Pharmacy.findOne({ pharmacyCode: pharmacyId }).lean();
-    }
+    const pharmacy = await Pharmacy.findById(pharmacyId).lean();
 
     if (!pharmacy) {
       return res.status(404).json({ message: "Pharmacy not found" });
