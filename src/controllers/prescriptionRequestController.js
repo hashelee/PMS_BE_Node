@@ -76,6 +76,12 @@ export const approveRequesByPharmacy = async (req, res) => {
         .json({ message: "Prescription request not found" });
     }
 
+    if (request.status !== prescriptionRequestEnum.PENDING) {
+      return res.status(409).json({
+        message: "Only pending requests can be approved",
+      });
+    }
+
     // Validate medicines array
     if (medicines && Array.isArray(medicines)) {
       const isValid = medicines.every(
@@ -101,7 +107,7 @@ export const approveRequesByPharmacy = async (req, res) => {
           });
         }
       }
-      request.medicines = medicines;
+      request.availableMedicines = medicines;
     }
 
     request.status = prescriptionRequestEnum.PHARMACY_APPROVED;
