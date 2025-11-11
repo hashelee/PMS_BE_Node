@@ -120,3 +120,35 @@ export const approveRequesByPharmacy = async (req, res) => {
       .json({ message: "Error approving prescription request" });
   }
 };
+
+export const declineRequestByPharmacy = async (req, res) => {
+  const { userId, email, role } = req.user;
+  const { requestId } = req.params;
+  const { reason } = req.body;
+  try {
+    const user = await validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const request = await PrescriptionRequest.findById(requestId);
+    if (!request) {
+      return res
+        .status(404)
+        .json({ message: "Prescription request not found" });
+    }
+    if (request.status !== prescriptionRequestEnum.PENDING) {
+      return res.status(409).json({
+        message: "Request should be in PENDING status to be declined",
+      });
+    }
+    request.status = prescriptionRequestEnum.PHARMACY_REJECTED;
+    request.reason = reason;
+    await request.save();
+    return res.status(200).json(request);
+  } catch (error) {
+    console.error("Decline Prescription Request Error:", error);
+    return res
+      .status(500)
+      .json({ message: "Error declining prescription request" });
+  }
+};
