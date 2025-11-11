@@ -62,7 +62,7 @@ export const getPrescriptionRequestById = async (req, res) => {
 export const approveRequesByPharmacy = async (req, res) => {
   const { userId, email, role } = req.user;
   const { requestId } = req.params;
-  const { medicines } = req.body;
+  const { medicines, estimatedPrice } = req.body;
 
   try {
     const user = await validateUser(userId, email, role);
@@ -108,6 +108,7 @@ export const approveRequesByPharmacy = async (req, res) => {
         }
       }
       request.availableMedicines = medicines;
+      request.estimatedPrice = estimatedPrice;
     }
 
     request.status = prescriptionRequestEnum.PHARMACY_APPROVED;
