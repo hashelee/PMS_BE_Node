@@ -7,6 +7,7 @@ import {
   getNearbyPharmaciesByName,
   registerPharmacy,
   getPharmacyDetails,
+  getPrescriptionRequestsByPharmacy
 } from "../controllers/pharmacyController.js";
 import {
   authenticate,
@@ -17,11 +18,18 @@ import {
 const router = Router();
 
 router.post("/sign-up", registerPharmacy);
+
 router.patch("/edit", authenticatePharmacy, editPharmacy);
+
 router.delete("/delete", authenticatePharmacy, deletePharmacy);
+
 router.get("/medicine", authenticatePharmacy, getMedicine);
 router.get("/nearby", authenticateUser, getNearbyPharmacies);
 router.get("/search", authenticateUser, getNearbyPharmaciesByName);
 router.get("/pharmacyDetails",authenticate, getPharmacyDetails);
-
+router.get(
+  "/prescription-requests",
+  authenticatePharmacy,
+  getPrescriptionRequestsByPharmacy
+);
 export default router;
