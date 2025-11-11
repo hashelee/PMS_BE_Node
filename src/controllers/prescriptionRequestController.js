@@ -78,7 +78,7 @@ export const approveRequesByPharmacy = async (req, res) => {
 
     if (request.status !== prescriptionRequestEnum.PENDING) {
       return res.status(409).json({
-        message: "Only pending requests can be approved",
+        message: "Request should be in PENDING status to be approved",
       });
     }
 
