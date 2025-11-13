@@ -122,6 +122,37 @@ export const approveRequesByPharmacy = async (req, res) => {
   }
 };
 
+export const approveRequestByUser=async (req,res) =>{
+  const { userId, email, role } = req.user;
+  const { requestId } = req.params;
+
+  try {
+    const user = await validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const request = await PrescriptionRequest.findById(requestId);
+    if (!request) {
+      return res
+        .status(404)
+        .json({ message: "Prescription request not found" });
+    }
+    if (request.status !== prescriptionRequestEnum.PHARMACY_APPROVED) {
+      return res.status(409).json({
+        message: "Request should be in PHARMACY_APPROVED status to be approved by user",
+      });
+    }
+    request.status = prescriptionRequestEnum.USER_APPROVED;
+    await request.save();
+    return res.status(200).json(request);
+  } catch (error) {
+    console.error("Approve Prescription Request by User Error:", error);
+    return res
+      .status(500)
+      .json({ message: "Error approving prescription request by user" });
+  }
+}
+
 export const declineRequestByPharmacy = async (req, res) => {
   const { userId, email, role } = req.user;
   const { requestId } = req.params;
