@@ -100,12 +100,21 @@ export const approveRequesByPharmacy = async (req, res) => {
       }
 
       for (const med of medicines) {
-        const exists = Medicine.findById(med.medicineId);
-        if (!exists) {
+        const medicine =await Medicine.findById(med.medicineId);
+        if (!medicine) {
           return res.status(400).json({
             message: `Medicine with ID ${med.medicineId} does not exist.`,
           });
         }
+        medicine.quantity -= med.quantity;
+        if (medicine.quantity < 0) {
+          return res.status(400).json({
+            message: `Insufficient stock for medicine ID ${med.medicineId}.`,
+          });
+        }
+        medicine.onHoldQuantity += med.quantity;
+        await medicine.save();
+
       }
       request.availableMedicines = medicines;
       request.estimatedPrice = estimatedPrice;
