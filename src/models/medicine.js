@@ -18,6 +18,7 @@ const medicineSchema = new mongoose.Schema({
   price: { type: Number, required: true, min: 0 },
 
   quantity: { type: Number, required: true, min: 0 },
+  onHoldQuantity: { type: Number, required: false, min: 0, default: 0 },
 
   dosage: { type: String, required: true },
 
