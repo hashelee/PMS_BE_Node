@@ -2,6 +2,8 @@ import User from "../models/user.js";
 import bcrypt from "bcryptjs";
 import { validateUser, validateEditFields } from "../service/commonService.js";
 import Medicine from "../models/medicine.js";
+import PrescriptionRequest from "../models/prescription_request.js";
+
 
 export const createUser = async (req, res) => {
   try {
@@ -49,11 +51,9 @@ export const updateUser = async (req, res) => {
         .json({ message: "Cannot update restricted fields" });
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      updatedData,
-      { new: true }
-    );
+    const updatedUser = await User.findByIdAndUpdate(userId, updatedData, {
+      new: true,
+    });
 
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
@@ -97,11 +97,11 @@ export const deleteUser = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   const { userId, email, role } = req.user;
   try {
-    const user = await validateUser(userId, email, role); 
+    const user = await validateUser(userId, email, role);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const { password,wishlist,cart, ...safeData } = user.toObject();
+    const { password, wishlist, cart, ...safeData } = user.toObject();
     return res.status(200).json(safeData);
   } catch (error) {
     console.error("Get User Profile Error:", error);
@@ -154,7 +154,9 @@ export const removeFromWishlist = async (req, res) => {
     return res.status(200).json({ message: "Item removed from wishlist" });
   } catch (error) {
     console.error("Remove from Wishlist Error:", error);
-    return res.status(500).json({ message: "Error removing item from wishlist" });
+    return res
+      .status(500)
+      .json({ message: "Error removing item from wishlist" });
   }
 };
 
@@ -173,19 +175,24 @@ export const getUserWishlist = async (req, res) => {
       })
       .select("wishlist");
 
-      const mappedWishList = wishlist.wishlist.reduce((acc, item) => {
+    const mappedWishList = wishlist.wishlist.reduce((acc, item) => {
       const pharmacy = item.medicineId.pharmacyId;
-      const existingPharmacy = acc.find(entry => entry.pharmacy._id.toString() === pharmacy._id.toString());
-      const itemWithoutPharmacyId = { ...item.toObject(), medicineId: { ...item.medicineId.toObject() } };
+      const existingPharmacy = acc.find(
+        (entry) => entry.pharmacy._id.toString() === pharmacy._id.toString()
+      );
+      const itemWithoutPharmacyId = {
+        ...item.toObject(),
+        medicineId: { ...item.medicineId.toObject() },
+      };
       delete itemWithoutPharmacyId.medicineId.pharmacyId;
 
       if (!existingPharmacy) {
-      acc.push({
-        pharmacy,
-        items: [itemWithoutPharmacyId],
-      });
+        acc.push({
+          pharmacy,
+          items: [itemWithoutPharmacyId],
+        });
       } else {
-      existingPharmacy.items.push(itemWithoutPharmacyId);
+        existingPharmacy.items.push(itemWithoutPharmacyId);
       }
       return acc;
     }, []);
@@ -205,7 +212,7 @@ export const addToCart = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     const medicine = await Medicine.findById(medicineId);
     if (!medicine) {
       return res.status(404).json({ message: "Medicine not found" });
@@ -213,17 +220,15 @@ export const addToCart = async (req, res) => {
 
     const existingItem = user.cart.find(
       (item) => item.medicineId.toString() === medicineId
-    );  
+    );
     if (existingItem) {
       existingItem.quantity += quantity;
-    }
-    else {
+    } else {
       user.cart.push({ medicineId, quantity });
     }
     await user.save();
     return res.status(200).json({ message: "Item added to cart" });
-  }
-  catch (error) {
+  } catch (error) {
     console.error("Add to Cart Error:", error);
     return res.status(500).json({ message: "Error adding item to cart" });
   }
@@ -265,17 +270,22 @@ export const getUserCart = async (req, res) => {
 
     const mappedCart = cart.cart.reduce((acc, item) => {
       const pharmacy = item.medicineId.pharmacyId;
-      const existingPharmacy = acc.find(entry => entry.pharmacy._id.toString() === pharmacy._id.toString());
-      const itemWithoutPharmacyId = { ...item.toObject(), medicineId: { ...item.medicineId.toObject() } };
+      const existingPharmacy = acc.find(
+        (entry) => entry.pharmacy._id.toString() === pharmacy._id.toString()
+      );
+      const itemWithoutPharmacyId = {
+        ...item.toObject(),
+        medicineId: { ...item.medicineId.toObject() },
+      };
       delete itemWithoutPharmacyId.medicineId.pharmacyId;
 
       if (!existingPharmacy) {
-      acc.push({
-        pharmacy,
-        items: [itemWithoutPharmacyId],
-      });
+        acc.push({
+          pharmacy,
+          items: [itemWithoutPharmacyId],
+        });
       } else {
-      existingPharmacy.items.push(itemWithoutPharmacyId);
+        existingPharmacy.items.push(itemWithoutPharmacyId);
       }
       return acc;
     }, []);
@@ -284,5 +294,28 @@ export const getUserCart = async (req, res) => {
   } catch (error) {
     console.error("Get User Cart Error:", error);
     return res.status(500).json({ message: "Error fetching cart" });
+  }
+};
+
+export const getPrescriptionRequestsByUser = async (req, res) => {
+  const { userId, email, role } = req.user;
+
+  try {
+    const user = await validateUser(userId, email, role);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const requests = await PrescriptionRequest.find({
+      userId: userId,
+    }).populate("pharmacyId", "-password");
+
+    return res.status(200).json(requests);
+  } catch (error) {
+    console.error("Get Prescription Requests by User Error:", error);
+    return res
+      .status(500)
+      .json({ message: "Error fetching prescription requests" });
   }
 };

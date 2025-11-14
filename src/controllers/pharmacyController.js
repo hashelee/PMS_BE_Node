@@ -5,6 +5,7 @@ import User from "../models/user.js";
 import Fuse from "fuse.js";
 import { validateUser, validateEditFields } from "../service/commonService.js";
 import mongoose from "mongoose";
+import PrescriptionRequest from "../models/prescription_request.js";
 
 export const registerPharmacy = async (req, res) => {
   try {
@@ -266,15 +267,7 @@ export const getPharmacyDetails = async (req, res) => {
       return res.status(400).json({ message: "Pharmacy ID is required" });
     }
 
-    let pharmacy;
-
-    if (mongoose.Types.ObjectId.isValid(pharmacyId)) {
-      // search by MongoDB ObjectId
-      pharmacy = await Pharmacy.findById(pharmacyId).lean();
-    } else {
-      // fallback: search by custom field (e.g. numeric pharmacyCode)
-      pharmacy = await Pharmacy.findOne({ pharmacyCode: pharmacyId }).lean();
-    }
+    const pharmacy = await Pharmacy.findById(pharmacyId).lean();
 
     if (!pharmacy) {
       return res.status(404).json({ message: "Pharmacy not found" });
@@ -294,4 +287,25 @@ export const getPharmacyDetails = async (req, res) => {
   }
 };
 
+export const getPrescriptionRequestsByPharmacy = async (req, res) => {
+  const { userId, email, role } = req.user;
 
+  try {
+    const user = await validateUser(userId, email, role);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const requests = await PrescriptionRequest.find({
+      pharmacyId: userId,
+    }).populate("userId", "-password -cart -wishlist");
+
+    return res.status(200).json(requests);
+  } catch (error) {
+    console.error("Get Prescription Requests by User Error:", error);
+    return res
+      .status(500)
+      .json({ message: "Error fetching prescription requests" });
+  }
+};

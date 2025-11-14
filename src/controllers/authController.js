@@ -123,6 +123,7 @@ const loginByEntity = async (isUser, email, password) => {
     token,
     user: {
       id: isUser ? user.userId : user.pharmacyId,
+      objectId: user._id,
       name: user.name,
     },
   };
