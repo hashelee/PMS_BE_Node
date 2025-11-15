@@ -5,8 +5,8 @@ import Pharmacy from "../models/pharmacy.js";
 
 export const createOrder = async (req, res) => {
   const { userId, email, role } = req.user;
-  const pharmacyId = req.query;
-  const items = req.body;
+  const {pharmacyId} = req.query;
+  const {items} = req.body;
   try {
     const user = await validateUser(userId, email, role);
     if (!user) {

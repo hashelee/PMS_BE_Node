@@ -2,7 +2,12 @@ import Order from "../models/order.js";
 import Medicine from "../models/medicine.js";
 import { orderStatusEnum } from "../enum/order_status_enum.js";
 
-const processCreateOrder = async (user,pharmacyId, items,isPrescriptionRequest) => {
+const processCreateOrder = async (
+  user,
+  pharmacyId,
+  items,
+  isPrescriptionRequest
+) => {
   if (!items || !Array.isArray(items) || items.length === 0) {
     throw new Error("Item list cannot be empty");
   }
@@ -14,25 +19,51 @@ const processCreateOrder = async (user,pharmacyId, items,isPrescriptionRequest) 
       );
     }
 
-    const medicineExists = await Medicine.findById(item.medicineId);
-    if (!medicineExists) {
+    const medicine = await Medicine.findById(item.medicineId);
+    if (!medicine) {
       throw new Error(`Medicine with ID ${item.medicineId} does not exist`);
     }
 
-    if(isPrescriptionRequest == true && medicineExists.onHoldQuantity >= item.quantity){
-      medicineExists.onHoldQuantity -= item.quantity;
-    }
-    else if (medicineExists.quantity >= item.quantity) {
-      medicineExists.quantity -= item.quantity;
-    } else {
+    if (medicine.pharmacyId.toString() !== pharmacyId.toString()) {
       throw new Error(
-        `Insufficient stock for medicine ID ${item.medicineId}`
+        `Medicine with ID ${item.medicineId} does not belong to the specified pharmacy`
       );
     }
-    await medicineExists.save();
+
+    if (
+      isPrescriptionRequest == true &&
+      medicine.onHoldQuantity >= item.quantity
+    ) {
+      medicine.onHoldQuantity -= item.quantity;
+    } else if (medicine.quantity >= item.quantity) {
+      medicine.quantity -= item.quantity;
+    } else {
+      throw new Error(`Insufficient stock for medicine ID ${item.medicineId}`);
+    }
+    await medicine.save();
+
+    if (Array.isArray(user.cart)) {
+      const cartItemIndex = user.cart.findIndex(
+        (cartItem) =>
+          cartItem.medicineId.toString() === item.medicineId.toString()
+      );
+
+      if (cartItemIndex !== -1) {
+        if (user.cart[cartItemIndex].quantity > item.quantity) {
+          user.cart[cartItemIndex].quantity -= item.quantity;
+        } else if (user.cart[cartItemIndex].quantity === item.quantity) {
+          user.cart.splice(cartItemIndex, 1); // Remove the item from the cart
+        }
+      }
+    }
   });
 
   await Promise.all(validationPromises);
+
+  // Save user cart once after all items are processed
+  if (user.cart) {
+    await user.save();
+  }
 
   const newOrder = {
     userId: user._id,
