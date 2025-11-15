@@ -18,7 +18,8 @@ const processCreateOrder = async (user, items,isPrescriptionRequest) => {
     if (!medicineExists) {
       throw new Error(`Medicine with ID ${item.medicineId} does not exist`);
     }
-    if(isPrescriptionRequest == true && medicineExists.onHoldQuantity >= medicineExists.quantity){
+
+    if(isPrescriptionRequest == true && medicineExists.onHoldQuantity >= item.quantity){
       medicineExists.onHoldQuantity -= item.quantity;
     }
     else if (medicineExists.quantity >= item.quantity) {
@@ -40,6 +41,7 @@ const processCreateOrder = async (user, items,isPrescriptionRequest) => {
   };
 
   const order = await Order.create(newOrder);
-  return order;
+  const orderWithDetails = await order.populate("medicines.medicineId");
+  return orderWithDetails;
 };
 export { processCreateOrder };
