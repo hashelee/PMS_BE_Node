@@ -1,5 +1,6 @@
 import { validateUser } from "../service/commonService";
 import Order from "../models/order.js";
+import { processCreateOrder } from "../service/orderService.js";
 
 export const createOrder = async (req, res) => {
   const { userId, email, role } = req.user;
@@ -9,39 +10,8 @@ export const createOrder = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ message: "Item list cannot be empty" });
-    }
-    for (const item of items) {
-      if (!item.medicine || !item.quantity || item.quantity < 1) {
-        return res.status(400).json({
-          message:
-            "Each item must have a valid medicine ID and quantity greater than 0",
-        });
-      }
 
-      const medicineExists = await Medicine.findById(item.medicine);
-      if (!medicineExists) {
-        return res.status(400).json({
-          message: `Medicine with ID ${item.medicine} does not exist`,
-        });
-      }
-      medicineExists.quantity -= item.quantity;
-      if (medicineExists.quantity < 0) {
-        return res.status(400).json({
-          message: `Insufficient stock for medicine ID ${item.medicine}`,
-        });
-      }
-      await medicineExists.save();
-    }
-
-    const newOrder = {
-      userId: user._id,
-      medicines: items,
-      status: OrderStatusEnum.PendingApproval,
-    };
-
-    const order = await Order.create(newOrder);
+    const order = await processCreateOrder(user, items, false);
 
     res
       .status(201)

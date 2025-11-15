@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { orderStatusEnum } from "../enum/order_status_enum.js";
 import AutoIncrementFactory from "mongoose-sequence";
 
 const connection = mongoose.connection;
@@ -9,7 +10,7 @@ const AutoIncrement = AutoIncrementFactory(connection);
 // orderSchema defines the structure for Order documents, including references to Medicine and order status.
 const orderSchema = mongoose.Schema({
     medicines: [{
-        medicine: {
+        medicineId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Medicine",
             required: true
@@ -22,8 +23,8 @@ const orderSchema = mongoose.Schema({
     }],
     status: {
         type: Number,
-        enum: OrderStatusEnum,
-        default: OrderStatusEnum.PendingApproval,
+        enum: orderStatusEnum,
+        default: orderStatusEnum.PendingApproval,
         required: true
     },
     userId: {
