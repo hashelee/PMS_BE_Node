@@ -3,6 +3,8 @@ import Medicine from "../models/medicine.js";
 import PrescriptionRequest from "../models/prescription_request.js";
 import { validateUser } from "../service/commonService.js";
 import prescriptionRequestEnum from "../enum/prescription_request_status_enum.js";
+import { processCreateOrder } from "../service/orderService.js";
+import { orderStatusEnum } from "../enum/order_status_enum.js";
 
 export const createPrescriptionRequest = async (req, res) => {
   const { userId, email, role } = req.user;
@@ -100,7 +102,7 @@ export const approveRequesByPharmacy = async (req, res) => {
       }
 
       for (const med of medicines) {
-        const medicine =await Medicine.findById(med.medicineId);
+        const medicine = await Medicine.findById(med.medicineId);
         if (!medicine) {
           return res.status(400).json({
             message: `Medicine with ID ${med.medicineId} does not exist.`,
@@ -114,7 +116,6 @@ export const approveRequesByPharmacy = async (req, res) => {
         }
         medicine.onHoldQuantity += med.quantity;
         await medicine.save();
-
       }
       request.availableMedicines = medicines;
       request.estimatedPrice = estimatedPrice;
@@ -131,7 +132,7 @@ export const approveRequesByPharmacy = async (req, res) => {
   }
 };
 
-export const approveRequestByUser=async (req,res) =>{
+export const approveRequestByUser = async (req, res) => {
   const { userId, email, role } = req.user;
   const { requestId } = req.params;
 
@@ -140,29 +141,46 @@ export const approveRequestByUser=async (req,res) =>{
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+
     const request = await PrescriptionRequest.findById(requestId);
     if (!request) {
       return res
         .status(404)
         .json({ message: "Prescription request not found" });
     }
+
     if (request.status !== prescriptionRequestEnum.PHARMACY_APPROVED) {
       return res.status(409).json({
-        message: "Request should be in PHARMACY_APPROVED status to be approved by user",
+        message:
+          "Request should be in PHARMACY_APPROVED status to be approved by user",
       });
     }
+
+    const medicines = request.availableMedicines;
+
+    const order = await processCreateOrder(user, medicines, true);
+    order.status = orderStatusEnum.Approved;
+    order.save();
+
     request.status = prescriptionRequestEnum.USER_APPROVED;
     await request.save();
-    return res.status(200).json(request);
+
+    return res
+      .status(200)
+      .json({
+        message: "order created successfully",
+        request: request,
+        order: order,
+      });
   } catch (error) {
     console.error("Approve Prescription Request by User Error:", error);
     return res
       .status(500)
       .json({ message: "Error approving prescription request by user" });
   }
-}
+};
 
-export const declineRequestByUser=async (req,res) =>{
+export const declineRequestByUser = async (req, res) => {
   const { userId, email, role } = req.user;
   const { requestId } = req.params;
 
@@ -179,7 +197,8 @@ export const declineRequestByUser=async (req,res) =>{
     }
     if (request.status !== prescriptionRequestEnum.PHARMACY_APPROVED) {
       return res.status(409).json({
-        message: "Request should be in PHARMACY_APPROVED status to be declined by user",
+        message:
+          "Request should be in PHARMACY_APPROVED status to be declined by user",
       });
     }
     request.status = prescriptionRequestEnum.USER_REJECTED;
@@ -191,7 +210,7 @@ export const declineRequestByUser=async (req,res) =>{
       .status(500)
       .json({ message: "Error declining prescription request by user" });
   }
-}
+};
 
 export const declineRequestByPharmacy = async (req, res) => {
   const { userId, email, role } = req.user;
