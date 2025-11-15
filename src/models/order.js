@@ -31,6 +31,11 @@ const orderSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
+    },
+    pharmacyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Pharmacy",
+        required: true
     }
 }, { timestamps: true, strict: true });
 

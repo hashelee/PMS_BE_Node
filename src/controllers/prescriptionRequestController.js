@@ -158,7 +158,7 @@ export const approveRequestByUser = async (req, res) => {
 
     const medicines = request.availableMedicines;
 
-    const order = await processCreateOrder(user, medicines, true);
+    const order = await processCreateOrder(user,request.pharmacyId, medicines, true);
     order.status = orderStatusEnum.Approved;
     order.save();
 
