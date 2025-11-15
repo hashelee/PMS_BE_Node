@@ -2,7 +2,7 @@ import Order from "../models/order.js";
 import Medicine from "../models/medicine.js";
 import { orderStatusEnum } from "../enum/order_status_enum.js";
 
-const processCreateOrder = async (user, items,isPrescriptionRequest) => {
+const processCreateOrder = async (user,pharmacyId, items,isPrescriptionRequest) => {
   if (!items || !Array.isArray(items) || items.length === 0) {
     throw new Error("Item list cannot be empty");
   }
@@ -36,6 +36,7 @@ const processCreateOrder = async (user, items,isPrescriptionRequest) => {
 
   const newOrder = {
     userId: user._id,
+    pharmacyId: pharmacyId,
     medicines: items,
     status: orderStatusEnum.PendingApproval,
   };
