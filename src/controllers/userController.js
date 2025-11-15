@@ -101,11 +101,30 @@ export const getUserProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const { password, wishlist, cart, ...safeData } = user.toObject();
+    const { password,  ...safeData } = user.toObject();
     return res.status(200).json(safeData);
   } catch (error) {
     console.error("Get User Profile Error:", error);
     return res.status(500).json({ message: "Error fetching user profile" });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  const { userId, email, role } = req.user;
+  const { id } = req.params;
+  try {
+    const user = await validateUser(userId, email, role);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const userById = await User.findById(id).select("-password");
+    if (!userById) {
+      return res.status(404).json({ message: "Requested user not found" });
+    }
+    return res.status(200).json(userById);
+  } catch (error) {
+    console.error("Get User By ID Error:", error);
+    return res.status(500).json({ message: "Error fetching user" });
   }
 };
 
