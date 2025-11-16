@@ -5,8 +5,8 @@ import Pharmacy from "../models/pharmacy.js";
 
 export const createOrder = async (req, res) => {
   const { userId, email, role } = req.user;
-  const {pharmacyId} = req.query;
-  const {items} = req.body;
+  const { pharmacyId } = req.query;
+  const { items } = req.body;
   try {
     const user = await validateUser(userId, email, role);
     if (!user) {
@@ -17,7 +17,7 @@ export const createOrder = async (req, res) => {
       return res.status(404).json({ message: "Pharmacy not found" });
     }
 
-    const order = await processCreateOrder(user,pharmacyId, items, false);
+    const order = await processCreateOrder(user, pharmacyId, items, false);
 
     res
       .status(201)
@@ -37,6 +37,7 @@ export const getUserOrders = async (req, res) => {
     }
     const orders = await Order.find({ userId: user._id })
       .populate("medicines.medicineId")
+      .populate("pharmacyId", "name")
       .sort({ createdAt: -1 });
     res.status(200).json({ orders });
   } catch (error) {
