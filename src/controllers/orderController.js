@@ -40,6 +40,7 @@ export const getUserOrders = async (req, res) => {
     }
     const orders = await Order.find({ userId: user._id })
       .populate("medicines.medicineId")
+      .populate("pharmacyId", "name")
       .sort({ createdAt: -1 });
     res.status(200).json({ orders });
   } catch (error) {
