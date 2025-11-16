@@ -66,6 +66,16 @@ export const getPharmacyOrders = async (req, res) => {
   }
 };
 
+export const getOrderById = async (req, res) => {
+  try {
+    const order = await validateOrder(req, res);
+    res.status(200).json({ order });
+  } catch (error) {
+    console.error("Error fetching order by ID:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const approveOrder = async (req, res) => {
   try {
     const order = await validateOrder(req, res);
@@ -96,7 +106,11 @@ export const declineOrder = async (req, res) => {
     for (const medicine of order.medicines) {
       const med = await Medicine.findById(medicine.medicineId);
       if (!med) {
-        return res.status(404).json({ message: `Medicine with ID ${medicine.medicineId} not found` });
+        return res
+          .status(404)
+          .json({
+            message: `Medicine with ID ${medicine.medicineId} not found`,
+          });
       }
       med.quantity += medicine.quantity;
       await med.save();
@@ -118,7 +132,7 @@ export const allocateToDelivery = async (req, res) => {
         .status(400)
         .json({ message: "Only approved orders can be allocated to delivery" });
     }
-    if( order.orderType !== orderTypeEnum.DELIVERY ) {
+    if (order.orderType !== orderTypeEnum.DELIVERY) {
       return res
         .status(400)
         .json({ message: "Only DELIVERY orders can be allocated to delivery" });
@@ -131,6 +145,29 @@ export const allocateToDelivery = async (req, res) => {
       .json({ message: "Order allocated to delivery successfully", order });
   } catch (error) {
     console.error("Error allocating order to delivery:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const completeOrder = async (req, res) => {
+  try {
+    const order = await validateOrder(req, res);
+    if (
+      order.status !== orderStatusEnum.AllottedToDelivery &&
+      order.status !== orderStatusEnum.Approved
+    ) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Only orders in Approved or AllottedToDelivery status can be completed",
+        });
+    }
+    order.status = orderStatusEnum.Completed;
+    await order.save();
+    res.status(200).json({ message: "Order completed successfully", order });
+  } catch (error) {
+    console.error("Error completing order:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
