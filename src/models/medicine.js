@@ -54,6 +54,11 @@ const medicineSchema = new mongoose.Schema({
   expiryDate: { type: Date, required: true },
 
   prescriptionRequired: { type: Boolean, required: true, default: false },
+
+  // ✅ Notification flags
+  notifiedLowStock: { type: Boolean, default: false },
+  notifiedOutOfStock: { type: Boolean, default: false },
+  notifiedExpired: { type: Boolean, default: false },
 });
 
 medicineSchema.index({ pharmacyId: 1 });

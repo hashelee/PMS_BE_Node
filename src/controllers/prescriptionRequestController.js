@@ -5,6 +5,43 @@ import { validateUser } from "../service/commonService.js";
 import prescriptionRequestEnum from "../enum/prescription_request_status_enum.js";
 import { processCreateOrder } from "../service/orderService.js";
 import { orderStatusEnum } from "../enum/order_status_enum.js";
+import User from "../models/user.js";
+import Notification from "../models/notification.js";
+import { sendNotificationEmail } from "../utils/notification.js";
+
+// 🔔 Helper to send email + save notification
+const notifyUserOrPharmacy = async ({
+  userId,
+  pharmacyId,
+  title,
+  message,
+  role,
+}) => {
+  try {
+    if (role === "user" && userId) {
+      const user = await User.findById(userId);
+      if (user?.email)
+        await sendNotificationEmail(title, message, [user.email]);
+    } else if (role === "pharmacy" && pharmacyId) {
+      const pharmacy = await Pharmacy.findById(pharmacyId);
+      if (pharmacy?.email)
+        await sendNotificationEmail(title, message, [pharmacy.email]);
+    }
+
+    // Save in DB
+    await Notification.create({
+      userId,
+      pharmacyId,
+      title,
+      message,
+      role,
+      createdAt: new Date(),
+      read: false,
+    });
+  } catch (err) {
+    console.error("Error sending notification:", err);
+  }
+};
 
 export const createPrescriptionRequest = async (req, res) => {
   const { userId, email, role } = req.user;
@@ -31,6 +68,14 @@ export const createPrescriptionRequest = async (req, res) => {
     });
 
     await newRequest.save();
+
+    await notifyUserOrPharmacy({
+      pharmacyId,
+      role: "pharmacy",
+      title: "New Prescription Request",
+      message: `A new prescription request has been submitted by ${user.name}.`,
+    });
+
     return res.status(201).json(newRequest);
   } catch (error) {
     console.error("Create Prescription Request Error:", error);
@@ -117,6 +162,13 @@ export const approveRequesByPharmacy = async (req, res) => {
         medicine.onHoldQuantity += med.quantity;
         await medicine.save();
       }
+      await notifyUserOrPharmacy({
+        userId: request.userId,
+        pharmacyId: request.pharmacyId,
+        role: "user",
+        title: `Prescription Request Approved #${request.prescriptionRequestId}`,
+        message: `Your prescription request has been approved by pharmacy.`,
+      });
       request.availableMedicines = medicines;
       request.estimatedPrice = estimatedPrice;
     }
@@ -158,20 +210,31 @@ export const approveRequestByUser = async (req, res) => {
 
     const medicines = request.availableMedicines;
 
-    const order = await processCreateOrder(user,request.pharmacyId, medicines, true);
+    const order = await processCreateOrder(
+      user,
+      request.pharmacyId,
+      medicines,
+      true
+    );
     order.status = orderStatusEnum.Approved;
     order.save();
+
+    await notifyUserOrPharmacy({
+      pharmacyId: request.pharmacyId,
+      userId: request.userId,
+      role: "pharmacy",
+      title: "Prescription Request Confirmed by User",
+      message: `The user has approved the prescription request. Order #${order.orderId} created.`,
+    });
 
     request.status = prescriptionRequestEnum.USER_APPROVED;
     await request.save();
 
-    return res
-      .status(200)
-      .json({
-        message: "order created successfully",
-        request: request,
-        order: order,
-      });
+    return res.status(200).json({
+      message: "order created successfully",
+      request: request,
+      order: order,
+    });
   } catch (error) {
     console.error("Approve Prescription Request by User Error:", error);
     return res
@@ -203,6 +266,15 @@ export const declineRequestByUser = async (req, res) => {
     }
     request.status = prescriptionRequestEnum.USER_REJECTED;
     await request.save();
+
+    await notifyUserOrPharmacy({
+      pharmacyId: request.pharmacyId,
+      userId: request.userId,
+      role: "pharmacy",
+      title: "Prescription Request Declined by User",
+      message: `The user declined the prescription request.`,
+    });
+
     return res.status(200).json(request);
   } catch (error) {
     console.error("Decline Prescription Request by User Error:", error);
@@ -235,6 +307,15 @@ export const declineRequestByPharmacy = async (req, res) => {
     request.status = prescriptionRequestEnum.PHARMACY_REJECTED;
     request.reason = reason;
     await request.save();
+
+    await notifyUserOrPharmacy({
+      userId: request.userId,
+      pharmacyId: request.pharmacyId,
+      role: "user",
+      title: "Prescription Request Declined",
+      message: `Your prescription request was declined by ${request.pharmacyId.name}. Reason: ${reason}`,
+    });
+
     return res.status(200).json(request);
   } catch (error) {
     console.error("Decline Prescription Request Error:", error);
@@ -270,6 +351,15 @@ export const cancelRequestByPharmacy = async (req, res) => {
     }
     request.status = prescriptionRequestEnum.CANCELLED;
     await request.save();
+
+    await notifyUserOrPharmacy({
+      userId: request.userId,
+      pharmacyId: request.pharmacyId,
+      role: "user",
+      title: "Prescription Request Cancelled",
+      message: `Your prescription request was cancelled by ${request.pharmacyId.name}.`,
+    });
+
     return res.status(200).json(request);
   } catch (error) {
     console.error("Cancel Prescription Request Error:", error);
