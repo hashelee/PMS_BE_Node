@@ -8,6 +8,7 @@ import pharmacyRoutes from "./src/routes/pharmacyRoute.js";
 import authRoutes from "./src/routes/authRoute.js";
 import medicineRoutes from "./src/routes/medicineRoute.js";
 import prescriptionRequestRoutes from "./src/routes/prescriptionRequestRoute.js";
+import notificationRoutes from "./src/routes/notificationRoute.js"
 import orders from "./src/routes/orderRoute.js";
 
 
@@ -27,6 +28,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/medicine", medicineRoutes);
 app.use("/api/prescription-requests", prescriptionRequestRoutes);
 app.use("/api/orders", orders);
+app.use("/api/notification", notificationRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
