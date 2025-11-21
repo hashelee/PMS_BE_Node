@@ -8,9 +8,9 @@ import pharmacyRoutes from "./src/routes/pharmacyRoute.js";
 import authRoutes from "./src/routes/authRoute.js";
 import medicineRoutes from "./src/routes/medicineRoute.js";
 import prescriptionRequestRoutes from "./src/routes/prescriptionRequestRoute.js";
-import notificationRoutes from "./src/routes/notificationRoute.js"
+import notificationRoutes from "./src/routes/notificationRoute.js";
 import orders from "./src/routes/orderRoute.js";
-
+import ratingRoutes from "./src/routes/ratingRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -20,15 +20,14 @@ app.use(cors());
 
 connectDB();
 
-
 app.use("/api/users", userRoutes);
-app.use("/api/pharmacy", pharmacyRoutes
-);
+app.use("/api/pharmacy", pharmacyRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/medicine", medicineRoutes);
 app.use("/api/prescription-requests", prescriptionRequestRoutes);
 app.use("/api/orders", orders);
 app.use("/api/notification", notificationRoutes);
+app.use("/api/ratings", ratingRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
